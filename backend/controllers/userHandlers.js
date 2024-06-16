@@ -34,6 +34,7 @@ const RegisterHandler = asyncHandler(async (req,res)=>{
             name :user.name ,
             email : user.email,
             password : user.password,
+            token : generateToken(user._id),
         });
     }else{
         res.status(400)
@@ -49,12 +50,14 @@ const LoginUser = asyncHandler(async (req,res)=>{
         throw new Error("Please enter the empty fields");
     }
 
-    const userExist = User.findOne({email});
+    const userExist =await User.findOne({ email });
     console.log(userExist);
+    
     if(userExist && (await bcrypt.compare(password,userExist.password))){
         res.json({
             _id : userExist.id,
             name : userExist.name,
+            token : generateToken(userExist._id),
         })
     }else{
         res.status(400)
@@ -62,8 +65,25 @@ const LoginUser = asyncHandler(async (req,res)=>{
     }
 })
 
+const getMe = asyncHandler(async (req,res)=>{
+    const {_id,name,email} = await User.findById(req.user.id);
+
+    res.status(200).json({
+        id : _id,
+        name : name,
+        email : email
+    })
+})
+
+const generateToken =  (id)=>{
+    return jwt.sign({id},process.env.JWT_SECRET,{
+        expiresIn : '30d',
+    })
+}
+
 
 module.exports = {
     RegisterHandler,
     LoginUser,
+    getMe,
 }
